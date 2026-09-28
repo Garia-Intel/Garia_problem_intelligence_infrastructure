@@ -11,7 +11,9 @@ from app.models.base import TimestampMixin, UUIDPrimaryKeyMixin
 from app.models.enums import ProblemStatus, ProblemType, SystemLevel
 
 if TYPE_CHECKING:
+    from app.models.canonical import ProblemCanonicalization
     from app.models.claim import Claim
+    from app.models.problem_version import ProblemVersion
     from app.models.review import Review
     from app.models.statistic import Statistic
 
@@ -45,3 +47,7 @@ class Problem(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     claims: Mapped[list[Claim]] = relationship(back_populates="problem")
     statistics: Mapped[list[Statistic]] = relationship(back_populates="problem")
     reviews: Mapped[list[Review]] = relationship(back_populates="problem")
+    problem_versions: Mapped[list[ProblemVersion]] = relationship(back_populates="problem")
+    canonicalizations: Mapped[list[ProblemCanonicalization]] = relationship(
+        back_populates="problem"
+    )

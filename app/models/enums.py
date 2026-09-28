@@ -100,6 +100,15 @@ class VerificationStatus(StrEnum):
     REJECTED = "rejected"
 
 
+class VerificationMethod(StrEnum):
+    SOURCE_CHECK = "source_check"
+    PRIMARY_SOURCE_CHECK = "primary_source_check"
+    INDEPENDENT_CORROBORATION = "independent_corroboration"
+    DATA_CHECK = "data_check"
+    DOCUMENT_CHECK = "document_check"
+    MANUAL_REVIEW = "manual_review"
+
+
 class EvidenceType(StrEnum):
     DIRECT_QUOTE = "direct_quote"
     TABLE = "table"
@@ -113,3 +122,25 @@ class ReviewDecision(StrEnum):
     APPROVE = "approve"
     REJECT = "reject"
     NEEDS_REVISION = "needs_revision"
+
+
+class CanonicalProblemStatus(StrEnum):
+    DRAFT = "draft"
+    ACTIVE = "active"
+    MERGED = "merged"
+    ARCHIVED = "archived"
+    RETIRED = "retired"
+
+
+class CanonicalizationDecision(StrEnum):
+    CREATE_CANONICAL = "create_canonical"
+    LINK_CONFIRMED = "link_confirmed"
+    LINK_PROPOSED = "link_proposed"
+    NOT_SAME_PROBLEM = "not_same_problem"
+    RELATED_ONLY = "related_only"
+    INSUFFICIENT_EVIDENCE = "insufficient_evidence"
+    CANDIDATE_REJECTED = "candidate_rejected"
+
+
+class CanonicalMergeStatus(StrEnum):
+    EXECUTED = "executed"
