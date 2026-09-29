@@ -14,10 +14,12 @@ from app.schemas.canonical import (
     CanonicalProblemRead,
     CanonicalProblemUpdate,
     CanonicalProblemVersionRead,
+    CanonicalResolutionCreate,
     CanonicalVersionCreate,
     ProblemCanonicalizationRead,
 )
 from app.services import canonical as canonical_service
+from app.services import resolution as resolution_service
 
 router = APIRouter(prefix="/canonical-problems", tags=["canonical problems"])
 
@@ -168,6 +170,37 @@ candidate_router = APIRouter(prefix="/problems", tags=["canonical problems"])
 
 @candidate_router.get("/{problem_id}/canonicalization", response_model=ProblemCanonicalizationRead)
 def current_canonical_mapping(
+    problem_id: uuid.UUID, db: Session = Depends(get_db)
+) -> ProblemCanonicalizationRead:
+    return canonical_service.current_canonical_mapping(db, problem_id)
+
+
+@candidate_router.post(
+    "/{problem_id}/canonicalization",
+    response_model=ProblemCanonicalizationRead,
+    status_code=status.HTTP_201_CREATED,
+)
+def resolve_canonical_identity(
+    problem_id: uuid.UUID,
+    data: CanonicalResolutionCreate,
+    db: Session = Depends(get_db),
+) -> ProblemCanonicalizationRead:
+    return resolution_service.resolve_candidate(db, problem_id, data)
+
+
+@candidate_router.get(
+    "/{problem_id}/canonicalization/history", response_model=list[ProblemCanonicalizationRead]
+)
+def resolution_history(
+    problem_id: uuid.UUID, db: Session = Depends(get_db)
+) -> list[ProblemCanonicalizationRead]:
+    return resolution_service.resolution_history(db, problem_id)
+
+
+@candidate_router.get(
+    "/{problem_id}/canonicalization/current", response_model=ProblemCanonicalizationRead
+)
+def current_resolution_mapping(
     problem_id: uuid.UUID, db: Session = Depends(get_db)
 ) -> ProblemCanonicalizationRead:
     return canonical_service.current_canonical_mapping(db, problem_id)

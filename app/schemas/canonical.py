@@ -43,8 +43,26 @@ class CanonicalizationCreate(BaseModel):
     match_confidence: float | None = Field(default=None, ge=0, le=1)
     reason: str = Field(min_length=1)
     actor_type: str = Field(min_length=1, max_length=64)
-    actor_id: str | None = Field(default=None, max_length=255)
+    actor_id: str = Field(min_length=1, max_length=255)
     methodology_version: str | None = Field(default=None, max_length=64)
+    supersedes_id: uuid.UUID | None = None
+
+
+class CanonicalIdentityResolutionCreate(BaseModel):
+    title: str = Field(min_length=1, max_length=500)
+    slug: str = Field(pattern=r"^[a-z0-9]+(?:-[a-z0-9]+)*$", max_length=512)
+    problem_statement: str = Field(min_length=1)
+
+
+class CanonicalResolutionCreate(BaseModel):
+    decision: CanonicalizationDecision
+    canonical_problem_id: uuid.UUID | None = None
+    canonical_identity: CanonicalIdentityResolutionCreate | None = None
+    match_confidence: float | None = Field(default=None, ge=0, le=1)
+    reason: str = Field(min_length=1)
+    actor_type: str = Field(min_length=1, max_length=64)
+    actor_id: str = Field(min_length=1, max_length=255)
+    methodology_version: str | None = Field(default=None, min_length=1, max_length=64)
     supersedes_id: uuid.UUID | None = None
 
 
@@ -87,7 +105,7 @@ class ProblemCanonicalizationRead(BaseModel):
     model_config = ConfigDict(from_attributes=True)
     id: uuid.UUID
     problem_id: uuid.UUID
-    canonical_problem_id: uuid.UUID
+    canonical_problem_id: uuid.UUID | None
     decision: CanonicalizationDecision
     match_confidence: float | None
     reason: str

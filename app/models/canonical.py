@@ -4,7 +4,18 @@ import uuid
 from datetime import datetime
 from typing import TYPE_CHECKING, Any
 
-from sqlalchemy import Boolean, DateTime, Enum, ForeignKey, Index, Integer, String, Text, and_
+from sqlalchemy import (
+    Boolean,
+    CheckConstraint,
+    DateTime,
+    Enum,
+    ForeignKey,
+    Index,
+    Integer,
+    String,
+    Text,
+    and_,
+)
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.types import JSON
@@ -53,11 +64,18 @@ class CanonicalProblem(UUIDPrimaryKeyMixin, TimestampMixin, Base):
 
 class ProblemCanonicalization(UUIDPrimaryKeyMixin, Base):
     __tablename__ = "problem_canonicalizations"
+    __table_args__ = (
+        CheckConstraint(
+            "(decision = 'CANDIDATE_REJECTED' AND canonical_problem_id IS NULL) OR "
+            "(decision <> 'CANDIDATE_REJECTED' AND canonical_problem_id IS NOT NULL)",
+            name="canonicalization_target_matches_decision",
+        ),
+    )
 
     problem_id: Mapped[uuid.UUID] = mapped_column(
         ForeignKey("problems.id", ondelete="RESTRICT"), index=True
     )
-    canonical_problem_id: Mapped[uuid.UUID] = mapped_column(
+    canonical_problem_id: Mapped[uuid.UUID | None] = mapped_column(
         ForeignKey("canonical_problems.id", ondelete="RESTRICT"), index=True
     )
     decision: Mapped[CanonicalizationDecision] = mapped_column(
@@ -74,7 +92,9 @@ class ProblemCanonicalization(UUIDPrimaryKeyMixin, Base):
     )
     is_current: Mapped[bool] = mapped_column(Boolean, default=True, index=True)
     problem: Mapped[Problem] = relationship(back_populates="canonicalizations")
-    canonical_problem: Mapped[CanonicalProblem] = relationship(back_populates="canonicalizations")
+    canonical_problem: Mapped[CanonicalProblem | None] = relationship(
+        back_populates="canonicalizations"
+    )
     supersedes: Mapped[ProblemCanonicalization | None] = relationship(
         remote_side="ProblemCanonicalization.id", foreign_keys=[supersedes_id]
     )

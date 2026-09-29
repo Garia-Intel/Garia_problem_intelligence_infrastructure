@@ -14,8 +14,7 @@ from app.models.canonical import (
     CanonicalProblemVersion,
     ProblemCanonicalization,
 )
-from app.models.enums import CanonicalizationDecision, CanonicalProblemStatus
-from app.models.problem import Problem
+from app.models.enums import CanonicalProblemStatus
 from app.schemas.canonical import (
     CanonicalizationCreate,
     CanonicalLifecycleChange,
@@ -281,85 +280,23 @@ def latest_canonical_version(
 def create_canonicalization(
     db: Session, canonical_problem_id: uuid.UUID, data: CanonicalizationCreate
 ) -> ProblemCanonicalization:
-    canonical = _get(db, canonical_problem_id)
-    candidate = db.get(Problem, data.problem_id)
-    if candidate is None or candidate.deleted:
-        raise NotFoundError("PROBLEM_NOT_FOUND", "Candidate problem does not exist.")
-    if (
-        data.decision == CanonicalizationDecision.LINK_CONFIRMED
-        and canonical.status != CanonicalProblemStatus.ACTIVE
-    ):
-        raise ConflictError(
-            "INVALID_CANONICAL_TARGET_STATE", "Confirmed links require an active canonical problem."
-        )
-    superseded = None
-    if data.supersedes_id:
-        superseded = db.get(ProblemCanonicalization, data.supersedes_id)
-        if superseded is None or superseded.problem_id != candidate.id or not superseded.is_current:
-            raise ConflictError(
-                "INVALID_CANONICAL_SUPERSESSION",
-                "Superseded decision must be a current decision for this candidate.",
-            )
-        superseded.is_current = False
-    if data.decision == CanonicalizationDecision.LINK_CONFIRMED:
-        existing = db.scalar(
-            select(ProblemCanonicalization).where(
-                ProblemCanonicalization.problem_id == candidate.id,
-                ProblemCanonicalization.decision == CanonicalizationDecision.LINK_CONFIRMED,
-                ProblemCanonicalization.is_current.is_(True),
-            )
-        )
-        if existing is not None:
-            raise ConflictError(
-                "CURRENT_CANONICAL_MAPPING_EXISTS",
-                "Candidate already has a current confirmed canonical mapping.",
-            )
-    decision = ProblemCanonicalization(
-        problem_id=candidate.id,
-        canonical_problem_id=canonical.id,
-        decision=data.decision,
-        match_confidence=data.match_confidence,
-        reason=data.reason,
-        actor_type=data.actor_type,
-        actor_id=data.actor_id,
-        methodology_version=data.methodology_version,
-        created_at=datetime.now(UTC),
-        supersedes_id=data.supersedes_id,
-        is_current=True,
-    )
-    db.add(decision)
-    db.flush()
-    action = {
-        CanonicalizationDecision.LINK_PROPOSED: "CANDIDATE_LINK_PROPOSED",
-        CanonicalizationDecision.LINK_CONFIRMED: "CANDIDATE_LINK_CONFIRMED",
-    }.get(data.decision, "CANDIDATE_LINK_REJECTED")
-    db.add(
-        AuditLog(
+    from app.schemas.canonical import CanonicalResolutionCreate
+    from app.services import resolution
+
+    return resolution.resolve_candidate(
+        db,
+        data.problem_id,
+        CanonicalResolutionCreate(
+            decision=data.decision,
+            canonical_problem_id=canonical_problem_id,
+            match_confidence=data.match_confidence,
+            reason=data.reason,
+            actor_type=data.actor_type,
             actor_id=data.actor_id,
-            entity_type="problem_canonicalization",
-            entity_id=decision.id,
-            action=action,
-            old_data={"superseded_decision_id": str(superseded.id) if superseded else None},
-            new_data={
-                "problem_id": str(candidate.id),
-                "canonical_problem_id": str(canonical.id),
-                "decision": data.decision.value,
-                "match_confidence": data.match_confidence,
-            },
-        )
+            methodology_version=data.methodology_version,
+            supersedes_id=data.supersedes_id,
+        ),
     )
-    if superseded:
-        db.add(
-            AuditLog(
-                actor_id=data.actor_id,
-                entity_type="problem_canonicalization",
-                entity_id=superseded.id,
-                action="CANDIDATE_LINK_SUPERSEDED",
-                old_data={"is_current": True},
-                new_data={"is_current": False, "superseded_by_id": str(decision.id)},
-            )
-        )
-    return _commit(db, decision)  # type: ignore[return-value]
 
 
 def canonicalization_history(
@@ -376,20 +313,9 @@ def canonicalization_history(
 
 
 def current_canonical_mapping(db: Session, problem_id: uuid.UUID) -> ProblemCanonicalization:
-    if db.get(Problem, problem_id) is None:
-        raise NotFoundError("PROBLEM_NOT_FOUND", "Candidate problem does not exist.")
-    result = db.scalar(
-        select(ProblemCanonicalization).where(
-            ProblemCanonicalization.problem_id == problem_id,
-            ProblemCanonicalization.decision == CanonicalizationDecision.LINK_CONFIRMED,
-            ProblemCanonicalization.is_current.is_(True),
-        )
-    )
-    if result is None:
-        raise NotFoundError(
-            "CANONICAL_MAPPING_NOT_FOUND", "No current confirmed canonical mapping exists."
-        )
-    return result
+    from app.services import resolution
+
+    return resolution.current_mapping(db, problem_id)
 
 
 def execute_merge(

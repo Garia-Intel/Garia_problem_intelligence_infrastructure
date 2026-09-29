@@ -8,6 +8,7 @@ from sqlalchemy.orm import Session
 
 from app.models.audit import AuditLog
 from app.models.canonical import CanonicalProblem, ProblemCanonicalization
+from app.models.enums import CanonicalizationDecision
 
 
 def create_candidate(client: TestClient, suffix: str = "001") -> dict[str, object]:
@@ -150,6 +151,7 @@ def test_canonicalization_history_current_mapping_and_provenance(
             "match_confidence": 0.72,
             "reason": "Similar affected population and location.",
             "actor_type": "deterministic_system",
+            "actor_id": "resolver-1",
             "methodology_version": "canonicalization-v1",
         },
     )
@@ -292,7 +294,7 @@ def test_database_partial_index_prevents_racing_current_confirmed_mappings(
     first = ProblemCanonicalization(
         problem_id=uuid.UUID(candidate["id"]),
         canonical_problem_id=uuid.UUID(canonical["id"]),
-        decision="link_confirmed",
+        decision=CanonicalizationDecision.LINK_CONFIRMED,
         reason="First concurrent decision.",
         actor_type="human",
         created_at=datetime.now(UTC),
@@ -301,7 +303,7 @@ def test_database_partial_index_prevents_racing_current_confirmed_mappings(
     second = ProblemCanonicalization(
         problem_id=uuid.UUID(candidate["id"]),
         canonical_problem_id=uuid.UUID(canonical["id"]),
-        decision="link_confirmed",
+        decision=CanonicalizationDecision.LINK_CONFIRMED,
         reason="Second concurrent decision.",
         actor_type="human",
         created_at=datetime.now(UTC),
