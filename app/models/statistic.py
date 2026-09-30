@@ -11,7 +11,11 @@ from app.models.base import TimestampMixin, UUIDPrimaryKeyMixin
 from app.models.enums import VerificationStatus
 
 if TYPE_CHECKING:
+    from app.models.claim import Claim
+    from app.models.document import Document
+    from app.models.evidence import Evidence
     from app.models.problem import Problem
+    from app.models.source import Source
 
 
 class Statistic(UUIDPrimaryKeyMixin, TimestampMixin, Base):
@@ -43,3 +47,7 @@ class Statistic(UUIDPrimaryKeyMixin, TimestampMixin, Base):
         Enum(VerificationStatus, native_enum=False), default=VerificationStatus.UNVERIFIED
     )
     problem: Mapped[Problem] = relationship(back_populates="statistics")
+    claim: Mapped[Claim | None] = relationship(back_populates="statistics")
+    evidence: Mapped[Evidence | None] = relationship(foreign_keys=[evidence_id])
+    document: Mapped[Document] = relationship(foreign_keys=[document_id])
+    source: Mapped[Source] = relationship(foreign_keys=[source_id])

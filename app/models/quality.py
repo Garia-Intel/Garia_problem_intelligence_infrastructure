@@ -2,15 +2,18 @@ from __future__ import annotations
 
 import uuid
 from datetime import UTC, datetime
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from sqlalchemy import DateTime, Float, ForeignKey, String, func
 from sqlalchemy.dialects.postgresql import JSONB
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.types import JSON
 
 from app.core.database import Base
 from app.models.base import UUIDPrimaryKeyMixin
+
+if TYPE_CHECKING:
+    from app.models.problem import Problem
 
 
 class QualityScore(UUIDPrimaryKeyMixin, Base):
@@ -30,3 +33,4 @@ class QualityScore(UUIDPrimaryKeyMixin, Base):
         DateTime(timezone=True), default=lambda: datetime.now(UTC), nullable=False
     )
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    problem: Mapped[Problem] = relationship(back_populates="quality_scores")

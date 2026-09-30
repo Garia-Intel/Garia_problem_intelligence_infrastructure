@@ -13,6 +13,7 @@ from app.models.enums import EvidenceType
 
 if TYPE_CHECKING:
     from app.models.claim import Claim
+    from app.models.document import Document
 
 
 class Evidence(UUIDPrimaryKeyMixin, Base):
@@ -31,3 +32,4 @@ class Evidence(UUIDPrimaryKeyMixin, Base):
     evidence_strength: Mapped[float | None] = mapped_column(Float)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     claim: Mapped[Claim] = relationship(back_populates="evidence_items")
+    document: Mapped[Document] = relationship(foreign_keys=[document_id])

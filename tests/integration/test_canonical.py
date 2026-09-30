@@ -59,7 +59,9 @@ def test_canonical_creation_identity_versions_and_audit(
     assert canonical["canonical_id"].startswith("CP-")
     assert canonical["status"] == "draft"
     assert canonical["canonical_key"]
-    assert client.get(f"/api/v1/canonical-problems/{canonical['id']}").json() == canonical
+    detail = client.get(f"/api/v1/canonical-problems/{canonical['id']}").json()
+    assert {key: detail[key] for key in canonical} == canonical
+    assert detail["linked_candidates"] == []
 
     update = client.patch(
         f"/api/v1/canonical-problems/{canonical['id']}",

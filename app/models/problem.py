@@ -14,6 +14,7 @@ if TYPE_CHECKING:
     from app.models.canonical import ProblemCanonicalization
     from app.models.claim import Claim
     from app.models.problem_version import ProblemVersion
+    from app.models.quality import QualityScore
     from app.models.review import Review
     from app.models.statistic import Statistic
 
@@ -51,3 +52,4 @@ class Problem(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     canonicalizations: Mapped[list[ProblemCanonicalization]] = relationship(
         back_populates="problem"
     )
+    quality_scores: Mapped[list[QualityScore]] = relationship(back_populates="problem")

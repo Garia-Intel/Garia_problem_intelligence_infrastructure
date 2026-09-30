@@ -1,6 +1,6 @@
 import uuid
 
-from fastapi import APIRouter, Depends, status
+from fastapi import APIRouter, Depends, Query, status
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
@@ -10,15 +10,20 @@ from app.schemas.canonical import (
     CanonicalLifecycleChange,
     CanonicalMergeCreate,
     CanonicalProblemCreate,
+    CanonicalProblemDetailRead,
+    CanonicalProblemListRead,
     CanonicalProblemMergeRead,
     CanonicalProblemRead,
     CanonicalProblemUpdate,
     CanonicalProblemVersionRead,
+    CanonicalProvenanceRead,
+    CanonicalQualityRead,
     CanonicalResolutionCreate,
     CanonicalVersionCreate,
     ProblemCanonicalizationRead,
 )
 from app.services import canonical as canonical_service
+from app.services import canonical_read
 from app.services import resolution as resolution_service
 
 router = APIRouter(prefix="/canonical-problems", tags=["canonical problems"])
@@ -31,11 +36,35 @@ def create_canonical_problem(
     return canonical_service.create_canonical_problem(db, data)
 
 
-@router.get("/{canonical_problem_id}", response_model=CanonicalProblemRead)
+@router.get("", response_model=CanonicalProblemListRead)
+def list_canonical_problems(
+    page: int = Query(default=1, ge=1),
+    page_size: int = Query(default=20, ge=1, le=100),
+    lifecycle_status: CanonicalProblemStatus | None = Query(default=None, alias="status"),
+    db: Session = Depends(get_db),
+) -> CanonicalProblemListRead:
+    return canonical_read.list_canonical_problems(db, page, page_size, lifecycle_status)
+
+
+@router.get("/{canonical_problem_id}", response_model=CanonicalProblemDetailRead)
 def get_canonical_problem(
     canonical_problem_id: uuid.UUID, db: Session = Depends(get_db)
-) -> CanonicalProblemRead:
-    return canonical_service.get_canonical_problem(db, canonical_problem_id)
+) -> CanonicalProblemDetailRead:
+    return canonical_read.detail(db, canonical_problem_id)
+
+
+@router.get("/{canonical_problem_id}/provenance", response_model=CanonicalProvenanceRead)
+def canonical_provenance(
+    canonical_problem_id: uuid.UUID, db: Session = Depends(get_db)
+) -> CanonicalProvenanceRead:
+    return canonical_read.provenance(db, canonical_problem_id)
+
+
+@router.get("/{canonical_problem_id}/quality", response_model=CanonicalQualityRead)
+def canonical_quality(
+    canonical_problem_id: uuid.UUID, db: Session = Depends(get_db)
+) -> CanonicalQualityRead:
+    return canonical_read.quality(db, canonical_problem_id)
 
 
 @router.patch("/{canonical_problem_id}", response_model=CanonicalProblemRead)

@@ -11,8 +11,11 @@ from app.models.base import TimestampMixin, UUIDPrimaryKeyMixin
 from app.models.enums import ClaimType, VerificationStatus
 
 if TYPE_CHECKING:
+    from app.models.document import Document
     from app.models.evidence import Evidence
     from app.models.problem import Problem
+    from app.models.source import Source
+    from app.models.statistic import Statistic
 
 
 class Claim(UUIDPrimaryKeyMixin, TimestampMixin, Base):
@@ -45,3 +48,6 @@ class Claim(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     )
     problem: Mapped[Problem] = relationship(back_populates="claims")
     evidence_items: Mapped[list[Evidence]] = relationship(back_populates="claim")
+    source: Mapped[Source | None] = relationship(foreign_keys=[source_id])
+    document: Mapped[Document | None] = relationship(foreign_keys=[document_id])
+    statistics: Mapped[list[Statistic]] = relationship(back_populates="claim")
